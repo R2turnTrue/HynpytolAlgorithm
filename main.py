@@ -1,8 +1,11 @@
+VISUALIZE = True
+
 from queue import PriorityQueue
 import heapq
 import itertools
 from game import read_map, GameState, get_vector_from_direction
-import pygame
+if VISUALIZE:
+    import pygame
 import time
 
 def d2array_to_tuple(d2array):
@@ -29,10 +32,12 @@ visited = set()
 
 min_chkp = 99999
 
-TILE_SIZE = 32
-pygame.init()
-screen = pygame.display.set_mode((TILE_SIZE * len(m[0]), TILE_SIZE * len(m)))
-pygame.display.set_caption("Pathfinding")
+screen = None
+if VISUALIZE:
+    TILE_SIZE = 32
+    pygame.init()
+    screen = pygame.display.set_mode((TILE_SIZE * len(m[0]), TILE_SIZE * len(m)))
+    pygame.display.set_caption("Pathfinding")
 
 while queue:
     f, g, count, (current_state, visited_cp) = heapq.heappop(queue)
@@ -50,7 +55,7 @@ while queue:
     
     if current_state.player_pos == goal_pos and not current_state.player_arm_state and len(visited_cp) == total_checkpoints:
         print("GOAL!")
-        print(current_state.actions)
+        #print(current_state.actions)
         st = ''
         for action in current_state.actions:
             if action[1] == (0, 1):
@@ -66,60 +71,61 @@ while queue:
 
     ########## RENDERING
 
-    pygame.event.get()
-    screen.fill((0, 0, 0))  # Fill the screen with black
-    
-    for y in range(len(current_state.m)):
-        for x in range(len(current_state.m[y])):
-            tile_value = current_state.m[y][x]
-            draw_tile = False
-            tile_color = (0, 0, 0)
-            
-            draw_direction = False
-            direction_vector = [0, 0]
-            
-            if tile_value == 1:
-                draw_tile = True
-                tile_color = (255, 255, 255)
-            elif tile_value == 2:
-                draw_tile = True
-                tile_color = (0, 255, 0)
-            
-            elif tile_value >= 3 and tile_value <= 6:
-                draw_tile = True
-                tile_color = (255, 0, 0)
-                draw_direction = True
-                direction_vector = get_vector_from_direction(tile_value - 3)
-            
-            elif tile_value == 8:
-                draw_tile = True
-                tile_color = (255, 128, 0)
-            
-            if draw_tile:
-                pygame.draw.rect(screen, tile_color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-            
-            if draw_direction:
-                pygame.draw.line(screen, (0, 0, 0), 
-                                 (x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE // 2), 
-                                 (x * TILE_SIZE + TILE_SIZE // 2 + direction_vector[0] * TILE_SIZE // 2, 
-                                  y * TILE_SIZE + TILE_SIZE // 2 + direction_vector[1] * TILE_SIZE // 2), 
-                                 3)
-    
-    if current_state.player_arm_state:
-        pygame.draw.line(screen, (0, 128, 128), 
-                         (current_state.player_pos[0] * TILE_SIZE + TILE_SIZE // 2, current_state.player_pos[1] * TILE_SIZE + TILE_SIZE // 2), 
-                         ((current_state.player_arm_raycast_to[0] - current_state.player_arm_direction[0]/2.0) * TILE_SIZE + TILE_SIZE // 2, 
-                          (current_state.player_arm_raycast_to[1] - current_state.player_arm_direction[1]/2.0) * TILE_SIZE + TILE_SIZE // 2), 
-                         5)
-        pygame.draw.circle(screen, (0, 128, 128), ((current_state.player_arm_raycast_to[0] - current_state.player_arm_direction[0]/2.0) * TILE_SIZE + TILE_SIZE // 2, 
-                          (current_state.player_arm_raycast_to[1] - current_state.player_arm_direction[1]/2.0) * TILE_SIZE + TILE_SIZE // 2), TILE_SIZE // 4)
-        pygame.draw.rect(screen, (0, 128, 128), (current_state.player_pos[0] * TILE_SIZE, current_state.player_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-    else:
-        pygame.draw.rect(screen, (0, 128, 255), (current_state.player_pos[0] * TILE_SIZE, current_state.player_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+    if VISUALIZE:
+        pygame.event.get()
+        screen.fill((0, 0, 0))  # Fill the screen with black
+        
+        for y in range(len(current_state.m)):
+            for x in range(len(current_state.m[y])):
+                tile_value = current_state.m[y][x]
+                draw_tile = False
+                tile_color = (0, 0, 0)
+                
+                draw_direction = False
+                direction_vector = [0, 0]
+                
+                if tile_value == 1:
+                    draw_tile = True
+                    tile_color = (255, 255, 255)
+                elif tile_value == 2:
+                    draw_tile = True
+                    tile_color = (0, 255, 0)
+                
+                elif tile_value >= 3 and tile_value <= 6:
+                    draw_tile = True
+                    tile_color = (255, 0, 0)
+                    draw_direction = True
+                    direction_vector = get_vector_from_direction(tile_value - 3)
+                
+                elif tile_value == 8:
+                    draw_tile = True
+                    tile_color = (255, 128, 0)
+                
+                if draw_tile:
+                    pygame.draw.rect(screen, tile_color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+                
+                if draw_direction:
+                    pygame.draw.line(screen, (0, 0, 0), 
+                                    (x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE // 2), 
+                                    (x * TILE_SIZE + TILE_SIZE // 2 + direction_vector[0] * TILE_SIZE // 2, 
+                                    y * TILE_SIZE + TILE_SIZE // 2 + direction_vector[1] * TILE_SIZE // 2), 
+                                    3)
+        
+        if current_state.player_arm_state:
+            pygame.draw.line(screen, (0, 128, 128), 
+                            (current_state.player_pos[0] * TILE_SIZE + TILE_SIZE // 2, current_state.player_pos[1] * TILE_SIZE + TILE_SIZE // 2), 
+                            ((current_state.player_arm_raycast_to[0] - current_state.player_arm_direction[0]/2.0) * TILE_SIZE + TILE_SIZE // 2, 
+                            (current_state.player_arm_raycast_to[1] - current_state.player_arm_direction[1]/2.0) * TILE_SIZE + TILE_SIZE // 2), 
+                            5)
+            pygame.draw.circle(screen, (0, 128, 128), ((current_state.player_arm_raycast_to[0] - current_state.player_arm_direction[0]/2.0) * TILE_SIZE + TILE_SIZE // 2, 
+                            (current_state.player_arm_raycast_to[1] - current_state.player_arm_direction[1]/2.0) * TILE_SIZE + TILE_SIZE // 2), TILE_SIZE // 4)
+            pygame.draw.rect(screen, (0, 128, 128), (current_state.player_pos[0] * TILE_SIZE, current_state.player_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+        else:
+            pygame.draw.rect(screen, (0, 128, 255), (current_state.player_pos[0] * TILE_SIZE, current_state.player_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
-    pygame.display.flip()  # Update the display
+        pygame.display.flip()  # Update the display
 
-    time.sleep(0.001)
+        time.sleep(0.001)
 
     ##################
     
@@ -143,9 +149,9 @@ while queue:
 
         if remain_chp < min_chkp:
             min_chkp = remain_chp
-            print(f'Remaining checkpoints: {remain_chp}, Current state: {new_state}')
+            print(f'Remaining checkpoints: {remain_chp}')
 
-        print(f'{new_state}')
+        #print(f'{new_state}')
         new_st = (new_state.clone(), new_visited_cp)
         new_g = g + 1
         new_f = new_g + heuristic(new_state.player_pos, goal_pos)
