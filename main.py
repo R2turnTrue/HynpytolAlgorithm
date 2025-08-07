@@ -1,4 +1,5 @@
 VISUALIZE = True
+PATH = ''
 
 from queue import PriorityQueue
 import heapq
@@ -33,11 +34,15 @@ visited = set()
 min_chkp = 99999
 
 screen = None
+
 if VISUALIZE:
     TILE_SIZE = 32
     pygame.init()
     screen = pygame.display.set_mode((TILE_SIZE * len(m[0]), TILE_SIZE * len(m)))
     pygame.display.set_caption("Pathfinding")
+    for i in range(1000):
+        pygame.event.get()
+        time.sleep(0.001)
 
 while queue:
     f, g, count, (current_state, visited_cp) = heapq.heappop(queue)
@@ -67,6 +72,7 @@ while queue:
             elif action[1] == (-1, 0):
                 st += 'A'
         print(f'Path: {st}')
+        PATH = st
         break
 
     ########## RENDERING
@@ -125,7 +131,7 @@ while queue:
 
         pygame.display.flip()  # Update the display
 
-        time.sleep(0.001)
+        #time.sleep(0.001)
 
     ##################
     
