@@ -114,6 +114,15 @@ class GameState:
             if self.m[pos[1] + dy][pos[0] + dx] == 0:
                 directions.append((dx, dy))
         return directions
+    
+    def check_movable_tile(self, pos):
+        if self.m[pos[1]][pos[0]] != 2:
+            return False
+        
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            if self.m[pos[1] + dy][pos[0] + dx] == 2:
+                return False
+        return True
 
     def push_arm(self, dir):
         new_self = self.clone()
@@ -127,16 +136,15 @@ class GameState:
             new_self.actions.append((0, tuple(dir)))
         else:
             # 팔 방향과 같은 방향으로 누름 (밀기)
-            if new_self.m[new_self.player_pos[1] - dir[1]][new_self.player_pos[0] - dir[0]] == 2:
-                # 뒤에 단핵구 있으면 단핵구를 벽 끝까지 이동함.
-                back_cast = raycast_tile(new_self.m, [new_self.player_pos[0] - dir[0] * 2, new_self.player_pos[1] - dir[1] * 2], dir_opposite)
-
-                new_self.m = swap_tile(new_self.m, [new_self.player_pos[0] - dir[0], new_self.player_pos[1] - dir[1]], [back_cast[0] + dir[0], back_cast[1] + dir[1]])
-
-                new_self.player_pos = [back_cast[0] + dir[0] * 2, back_cast[1] + dir[1] * 2]
-            elif new_self.m[new_self.player_arm_raycast_to[1]][new_self.player_arm_raycast_to[0]] == 2:
-                # 팔 뻗은 곳에 단핵구 있으면 단핵구를 벽 끝까지 이동함.
+            
+            cast = None
+            try:
                 cast = raycast_tile(new_self.m, [new_self.player_arm_raycast_to[0] + dir[0], new_self.player_arm_raycast_to[1] + dir[1]], dir)
+            except ValueError:
+                pass
+            #if new_self.m[new_self.player_arm_raycast_to[1]][new_self.player_arm_raycast_to[0]] == 2:
+            if new_self.check_movable_tile(new_self.player_arm_raycast_to) and not new_self.m[cast[1] - dir[1]][cast[0] - dir[0]] in WALL_TILES:
+                # 팔 뻗은 곳에 단핵구 있으면 단핵구를 벽 끝까지 이동함.
 
                 if new_self.m[cast[1] - dir[1]][cast[0] - dir[0]] in WALL_TILES:
                     # 이미 단핵구가 벽 끝에 있는 상황
@@ -144,6 +152,14 @@ class GameState:
 
                 new_self.m = swap_tile(new_self.m, [new_self.player_arm_raycast_to[0], new_self.player_arm_raycast_to[1]], [cast[0] - dir[0], cast[1] - dir[1]])
                 new_self.player_arm_raycast_to = [cast[0] - dir[0], cast[1] - dir[1]]
+            #elif new_self.m[new_self.player_pos[1] - dir[1]][new_self.player_pos[0] - dir[0]] == 2:
+            elif new_self.check_movable_tile([new_self.player_pos[0] - dir[0], new_self.player_pos[1] - dir[1]]):
+                # 뒤에 단핵구 있으면 단핵구를 벽 끝까지 이동함.
+                back_cast = raycast_tile(new_self.m, [new_self.player_pos[0] - dir[0] * 2, new_self.player_pos[1] - dir[1] * 2], dir_opposite)
+
+                new_self.m = swap_tile(new_self.m, [new_self.player_pos[0] - dir[0], new_self.player_pos[1] - dir[1]], [back_cast[0] + dir[0], back_cast[1] + dir[1]])
+
+                new_self.player_pos = [back_cast[0] + dir[0] * 2, back_cast[1] + dir[1] * 2]
             else:
                 new_self.player_pos = [new_self.player_arm_opposite_raycast_to[0] + dir[0], new_self.player_arm_opposite_raycast_to[1] + dir[1]]
 
@@ -157,7 +173,8 @@ class GameState:
         if new_self.player_arm_state:
             dir = [-new_self.player_arm_direction[0], -new_self.player_arm_direction[1]]
             cast_tile = new_self.m[new_self.player_arm_raycast_to[1]][new_self.player_arm_raycast_to[0]]
-            if cast_tile == 2:
+            #if cast_tile == 2:
+            if new_self.check_movable_tile(new_self.player_arm_raycast_to):
                 # 단핵구일 경우 그냥 타일을 본인 앞으로 이동하기만 함
                 new_self.m = swap_tile(new_self.m, new_self.player_arm_raycast_to, [new_self.player_pos[0] + new_self.player_arm_direction[0], new_self.player_pos[1] + new_self.player_arm_direction[1]])
             else:
