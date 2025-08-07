@@ -30,7 +30,7 @@
 
 ## Running
 
-### Run game (user play)
+### Run pygame frontend (user play)
 
 ```
 python pygamefe.py <mapfile.py>
