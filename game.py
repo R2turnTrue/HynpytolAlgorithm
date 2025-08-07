@@ -1,6 +1,10 @@
 import copy
 import sys
 
+##ACTIONS
+# 0: 팔 밀기
+# 1: 팔 당기기
+
 # 비어 있음: 0
 # 벽: 1
 # 단핵구: 2
@@ -64,11 +68,11 @@ class GameState:
         self.player_arm_direction = [-1, -1]
         self.player_arm_raycast_to = [-1, -1]
         self.player_arm_opposite_raycast_to = [-1, -1]
-        self.last_action = [-1, [-1, -1]]
+        self.actions = []
     
     def __str__(self):
-        return f'GameState(player_pos={self.player_pos}, player_arm_state={self.player_arm_state}, player_arm_direction={self.player_arm_direction}, player_arm_raycast_to={self.player_arm_raycast_to}, player_arm_opposite_raycast_to={self.player_arm_opposite_raycast_to}), last_action={self.last_action})'
-    
+        return f'GameState(player_pos={self.player_pos}, player_arm_state={self.player_arm_state}, player_arm_direction={self.player_arm_direction}, player_arm_raycast_to={self.player_arm_raycast_to}, player_arm_opposite_raycast_to={self.player_arm_opposite_raycast_to}), actions={self.actions})'
+
     def clone(self):
         new_self = GameState(copy.deepcopy(self.m))
         new_self.player_pos = [self.player_pos[0], self.player_pos[1]]
@@ -76,7 +80,7 @@ class GameState:
         new_self.player_arm_direction = [self.player_arm_direction[0], self.player_arm_direction[1]]
         new_self.player_arm_raycast_to = [self.player_arm_raycast_to[0], self.player_arm_raycast_to[1]]
         new_self.player_arm_opposite_raycast_to = [self.player_arm_opposite_raycast_to[0], self.player_arm_opposite_raycast_to[1]]
-        new_self.last_action = [self.last_action[0], [self.last_action[1][0], self.last_action[1][1]]]
+        new_self.actions = list(self.actions)  # Copy the actions list
         return new_self
 
     def get_all_infected_cells_array(self):
@@ -94,6 +98,22 @@ class GameState:
                 if self.m[y][x] == 8:
                     return [x, y]
         return None
+    
+    def last_action(self):
+        if len(self.actions) == 0:
+            return None
+        return self.actions[-1]
+
+    def action_tuple(self):
+        return tuple(self.actions)
+
+    def movable_directions(self):
+        directions = []
+        pos = self.player_pos
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            if self.m[pos[1] + dy][pos[0] + dx] == 0:
+                directions.append((dx, dy))
+        return directions
 
     def push_arm(self, dir):
         new_self = self.clone()
@@ -104,7 +124,7 @@ class GameState:
             new_self.player_arm_direction = dir
             new_self.player_arm_raycast_to = raycast_tile(new_self.m, new_self.player_pos, dir)
             new_self.player_arm_opposite_raycast_to = raycast_tile(new_self.m, new_self.player_pos, dir_opposite)
-            new_self.last_action = [1, dir]
+            new_self.actions.append((0, tuple(dir)))
         else:
             # 팔 방향과 같은 방향으로 누름 (밀기)
             if new_self.m[new_self.player_pos[1] - dir[1]][new_self.player_pos[0] - dir[0]] == 2:
@@ -126,9 +146,9 @@ class GameState:
                 new_self.player_arm_raycast_to = [cast[0] - dir[0], cast[1] - dir[1]]
             else:
                 new_self.player_pos = [new_self.player_arm_opposite_raycast_to[0] + dir[0], new_self.player_arm_opposite_raycast_to[1] + dir[1]]
-            
-            new_self.last_action = [1, dir]
-        
+
+            new_self.actions.append((0, tuple(dir)))
+
         return new_self
 
     def pull_arm(self):
@@ -154,6 +174,6 @@ class GameState:
             new_self.player_arm_direction = [-1, -1]
             new_self.player_arm_raycast_to = [-1, -1]
             new_self.player_arm_opposite_raycast_to = [-1, -1]
-            new_self.last_action = [0, dir]
+            new_self.actions.append((1, tuple(dir)))
 
         return new_self
