@@ -2,17 +2,18 @@ VISUALIZE = True
 PATH = ''
 
 from queue import PriorityQueue
-import heapq
 import itertools
 from game import read_map, GameState, get_vector_from_direction
 if VISUALIZE:
     import pygame
 import time
+import math
 
 def d2array_to_tuple(d2array):
     return tuple(tuple(row) for row in d2array)
 
 def heuristic(a, b):
+    #return math.dist(a, b)
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 m = read_map()
@@ -26,9 +27,23 @@ checkpoints = {tuple(pos): idx for idx, pos in enumerate(checkpoints)}
 total_checkpoints = len(checkpoints)
 goal_pos = st_game_state.get_destination()
 
-start_state = (st_game_state.clone(), frozenset())
+start_state = {'state': st_game_state.clone(), 'visited_cp': frozenset()}
 counter = itertools.count()
-queue = [(0 + heuristic(start_pos, goal_pos), 0, next(counter), start_state)]
+#queue = [(0 + heuristic(start_pos, goal_pos), 0, next(counter), start_state)]
+
+class PriorityEntry(object):
+
+    def __init__(self, priority, data):
+        self.data = data
+        self.priority = priority
+
+    def __lt__(self, other):
+        return -self.priority > -other.priority
+
+queue = PriorityQueue()
+
+queue.put(PriorityEntry((0 + heuristic(start_pos, goal_pos)), start_state))
+
 visited = set()
 
 min_chkp = 99999
@@ -40,13 +55,20 @@ if VISUALIZE:
     pygame.init()
     screen = pygame.display.set_mode((TILE_SIZE * len(m[0]), TILE_SIZE * len(m)))
     pygame.display.set_caption("Pathfinding")
-    for i in range(1000):
+    for i in range(250):
         pygame.event.get()
         time.sleep(0.001)
 
-while queue:
-    f, g, count, (current_state, visited_cp) = heapq.heappop(queue)
-    
+while not queue.empty():
+    pri = queue.get()
+
+    cost = pri.priority
+    #print(cost)
+    d = pri.data
+
+    current_state = d['state']
+    visited_cp = d['visited_cp']
+
     skip = False
     for (state, vs_cp) in visited:
         if state.player_pos == current_state.player_pos and state.m == current_state.m and state.last_action() == current_state.last_action() and vs_cp == visited_cp:
@@ -158,10 +180,9 @@ while queue:
             print(f'Remaining checkpoints: {remain_chp}')
 
         #print(f'{new_state}')
-        new_st = (new_state.clone(), new_visited_cp)
-        new_g = g + 1
-        new_f = new_g + heuristic(new_state.player_pos, goal_pos)
-        
-        heapq.heappush(queue, (new_f, new_g, next(counter), new_st))
+        new_st = {'state': new_state.clone(), 'visited_cp': new_visited_cp}
+        h = heuristic(new_state.player_pos, goal_pos)
+
+        queue.put(PriorityEntry((cost + h), new_st))
         #print(new_state)
         #print(f'Checkpoint remain: {total_checkpoints - len(new_visited_cp)}')

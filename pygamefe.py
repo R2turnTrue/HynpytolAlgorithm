@@ -1,5 +1,11 @@
 import pygame
 from game import read_map, GameState, get_vector_from_direction
+import time
+
+MACRO = True
+#MACRO_VALUE = "DAADSWWSDADADDDASWWSDAADSWADDASWWSDASWADSWWSADSSWDAADDASWWSDAADSWDASWWSDAADDDAADSWWSDAADWWSDAADSWDDADAADSWDASWDADDAADDASWWSDAADSWWWSDAADDAAADSWWSDAADSWWSDAAD"
+MACRO_VALUE = "WSADDASSSWDAWSDAWSDDDAWSWSADSWADSWDASWADWSADWSDAWS"
+MACRO_CURSOR = 0
 
 m = read_map()
 game_state = GameState(m)
@@ -10,8 +16,60 @@ pygame.init()
 screen = pygame.display.set_mode((TILE_SIZE * len(m[0]), TILE_SIZE * len(m)))
 pygame.display.set_caption("Hynpytol")
 
+def keyp(k, game_state):
+    dir = [0, 0]
+    if k == 'W':
+        dir = [0, -1]
+        print('W pressed')
+    elif k == 'S':
+        dir = [0, 1]
+        print('S pressed')
+    elif k == 'A':
+        dir = [-1, 0]
+        print('A pressed')
+    elif k == 'D':
+        dir = [1, 0]
+        print('D pressed')
+
+    dir_opposite = [-dir[0], -dir[1]]
+    
+    if dir != [0, 0]:
+        if not game_state.player_arm_state or dir == game_state.player_arm_direction:
+            return game_state.push_arm(dir)
+        elif dir == [-game_state.player_arm_direction[0], -game_state.player_arm_direction[1]]:
+            return game_state.pull_arm()
+
+def pygame_key_to_string(event):
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_w:
+            return 'W'
+        elif event.key == pygame.K_s:
+            return 'S'
+        elif event.key == pygame.K_a:
+            return 'A'
+        elif event.key == pygame.K_d:
+            return 'D'
+
+macro_timer = 0.05
+prevTime = time.time()
 running = True
 while running:
+    now = time.time()
+    deltaTime = now - prevTime
+    prevTime = now
+
+    if MACRO:
+        macro_timer -= deltaTime
+        if macro_timer <= 0:
+            macro_timer = 0.05
+            if MACRO_CURSOR < len(MACRO_VALUE):
+                k = MACRO_VALUE[MACRO_CURSOR]
+                MACRO_CURSOR += 1
+                game_state = keyp(k, game_state)
+            else:
+                print('macro fin')
+                MACRO = False
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -23,26 +81,8 @@ while running:
                 print('Reloading map')
                 m = read_map()
                 game_state = GameState(m)
-            if event.key == pygame.K_w:
-                dir = [0, -1]
-                print('W pressed')
-            elif event.key == pygame.K_s:
-                dir = [0, 1]
-                print('S pressed')
-            elif event.key == pygame.K_a:
-                dir = [-1, 0]
-                print('A pressed')
-            elif event.key == pygame.K_d:
-                dir = [1, 0]
-                print('D pressed')
-
-            dir_opposite = [-dir[0], -dir[1]]
-            
-            if dir != [0, 0]:
-                if not game_state.player_arm_state or dir == game_state.player_arm_direction:
-                    game_state = game_state.push_arm(dir)
-                elif dir == [-game_state.player_arm_direction[0], -game_state.player_arm_direction[1]]:
-                    game_state = game_state.pull_arm()
+            k = pygame_key_to_string(event)
+            game_state = keyp(k, game_state)
     
     screen.fill((0, 0, 0))  # Fill the screen with black
     
